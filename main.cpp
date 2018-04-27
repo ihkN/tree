@@ -1,467 +1,337 @@
-
-#include < iostream > 
-#include < cmath > 
-#include < sstream > 
-#include < cassert > 
-#include < algorithm >
+#include <iostream>
+#include <cmath>
+#include <sstream>
+#include <cassert>
+#include <algorithm>
 
 using namespace std;
 
-template < class T >
-    class Tree {
-        private:
+template <class T>
+class Tree {
+private:
 
-            struct Node {
-                T value;
-                Node * left, * right, * parent;
+    struct Node {
+        T value;
+        Node *left, *right, *parent;
 
-                explicit Node(const T & val);;
-            };
-
-        Node * root;
-
-        static bool is_left_child(const Node * node) {
-            if (node - > parent == 0) return false;
-            else return node - > parent - > left == node;
-        }
-
-        static bool is_right_child(const Node * node) {
-            if (node - > parent == 0) return false;
-            else return node - > parent - > right == node;
-        }
-
-        Node * * get_parent_ptr(Node * node) {
-            if (node - > parent == 0) return &root;
-            else if (is_left_child(node)) return &node - > parent - > left;
-            else return &node - > parent - > right;
-        }
-
-        static string format_label(const Node * node) {
-            ostringstream out;
-            if (node) {
-                out << node - > value;
-                return out.str();
-            } else return "";
-        }
-
-        static unsigned int get_height(const Node * node) {
-            if (!node) return 0;
-
-            unsigned int left_height = 0, right_height = 0;
-
-            if (node - > left) left_height = get_height(node - > left);
-            if (node - > right) right_height = get_height(node - > right);
-
-            return max(left_height, right_height) + 1;
-        }
-
-        static unsigned long get_width(const Node * node) {
-            if (!node) return 0;
-
-            unsigned long right_width = 0;
-            unsigned long left_width = 0;
-
-            if (node - > left) left_width = get_width(node - > left);
-            if (node - > right) right_width = get_width(node - > right);
-
-            return left_width + format_label(node).length() + right_width;
-        }
-
-        static void dump_spaces(ostream & out, unsigned long count) {
-            for (unsigned i = 0; i < count; ++i) out.put(' ');
-        }
-
-        static void dump_line(ostream & out,
-            const Node * node, unsigned line) {
-            if (!node) return;
-
-            if (line == 1) {
-                dump_spaces(out, get_width(node - > left));
-                out << format_label(node);
-                dump_spaces(out, get_width(node - > right));
-            } else {
-                dump_line(out, node - > left, line - 1);
-                dump_spaces(out, format_label(node).length());
-                dump_line(out, node - > right, line - 1);
-            }
-        }
-
-        static void dump_node(ostream & out,
-            const Node * node) {
-            for (unsigned line = 1, height = get_height(node); line <= height; ++line) {
-                dump_line(out, node, line);
-                out.put('\n');
-            }
-            out.flush();
-        }
-
-        bool is_valid(Node * node) {
-            if (node == 0) return true;
-            if ( * get_parent_ptr(node) != node) return false;
-            if (!is_valid(node - > left)) return false;
-            if (!is_valid(node - > right)) return false;
-
-            return true;
-        }
-
-        static void dispose(Node * node) {
-            if (node) {
-                dispose(node - > left);
-                dispose(node - > right);
-                delete node;
-            }
-        }
-
-        template < class NodeT >
-            static NodeT * search(NodeT * root,
-                const T & value) {
-                NodeT * now = root;
-                while (now) {
-                    if (value < now - > value) now = now - > left;
-                    else if (value > now - > value) now = now - > right;
-                    else return now;
-                }
-                return nullptr;
-            }
-
-        Node * rotate_left(Node * old_root) {
-            Node
-                * * root_ptr = get_parent_ptr(old_root), * parent = old_root - > parent, * new_root = old_root - > right, * old_roots_left_child = old_root - > left, * new_roots_left_child = new_root - > left, * new_roots_right_child = new_root - > right;
-
-            * root_ptr = new_root;
-            new_root - > left = old_root;
-            new_root - > right = new_roots_right_child;
-            old_root - > left = old_roots_left_child;
-            old_root - > right = new_roots_left_child;
-
-            new_root - > parent = parent;
-            old_root - > parent = new_root;
-
-            if (new_roots_left_child) new_roots_left_child - > parent = old_root;
-            if (new_roots_right_child) new_roots_right_child - > parent = new_root;
-            if (old_roots_left_child) old_roots_left_child - > parent = old_root;
-        new_root->left = old_root;
-139
-        new_root->right =  new_roots_right_child;
-140
-        old_root->left = old_roots_left_child;
-141
-        old_root->right = new_roots_left_child;
-142
-​
-143
-        new_root->parent = parent;
-144
-        old_root->parent = new_root;
-145
-​
-146
-        if(new_roots_left_child) new_roots_left_child->parent = old_root;
-147
-        if(new_roots_right_child) new_roots_right_child->parent = new_root;
-148
-        if(old_roots_left_child) old_roots_left_child->parent = old_root;
-149
-​
-150
-        assert(is_valid(new_root));
-151
-        return new_root;
-152
-    }
-153
-​
-154
-    Node* rotate_right(Node *old_root) {
-155
-        //todo: Algorithmus spiegeln!
-156
-        return 0;
-157
-        Node
-158
-                **root_ptr = get_parent_ptr(old_root),
-159
-                *parent = old_root->parent,
-160
-                *new_root = old_root->left,
-161
-                *old_roots_left_child = old_root->left,
-162
-                *new_roots_left_child = new_root->left,
-163
-                *new_roots_right_child = new_root->right;
-164
-​
-165
-        *root_ptr = new_root;
-166
-        new_root->left = old_root;
-167
-        new_root->right =  new_roots_right_child;
-168
-        old_root->left = old_roots_left_child;
-169
-        old_root->right = new_roots_left_child;
-170
-​
-171
-        new_root->parent = parent;
-172
-        old_root->parent = new_root;
-173
-​
-174
-        if(new_roots_left_child) new_roots_left_child->parent = old_root;
-175
-        if(new_roots_right_child) new_roots_right_child->parent = new_root;
-176
-        if(old_roots_left_child) old_roots_left_child->parent = old_root;
-177
-​
-178
-        assert(is_valid(new_root));
-179
-        return new_root;
-180
-    }
-181
-​
-182
-public:
-183
-    Tree():root(0){}
-184
-​
-185
-    ~Tree() {
-186
-        dispose(root);
-187
-    }
-188
-​
-189
-    Tree(const Tree &other) {
-190
-        if(other.is_empty()) {
-191
-            root = 0;
-192
-        }
-193
-        else {
-194
-            root = new Node(other.root->value);
-195
-​
-196
-            try {
-197
-                Node *now = root,
-198
-                     *other_now = other.root;
-199
-​
-200
-                while(other_now) {
-201
-                    if(other_now->left && !now->left)  {
-202
-                        now->left = new Node(other_now->left->value);
-203
-                        now->left->parent = now;
-204
-                        now = now->left;
-205
-                        other_now = other_now->left;
-206
-                    }
-207
-                    else if(other_now->right && !now->right) {
-208
-                        now->right = new Node(other_now->right->value);
-209
-                        now->right->parent = now;
-210
-                        now = now->right;
-211
-                        other_now = other_now->right;
-212
-                    }
-213
-                    else {
-214
-                        now = now->parent;
-            assert(is_valid(new_root));
-            return new_root;
-        }
-
-        Node * rotate_right(Node * old_root) {
-            //todo: Algorithmus spiegeln!
-            return 0;
-            Node
-                * * root_ptr = get_parent_ptr(old_root), * parent = old_root - > parent, * new_root = old_root - > left, * old_roots_left_child = old_root - > left, * new_roots_left_child = new_root - > left, * new_roots_right_child = new_root - > right;
-
-            * root_ptr = new_root;
-            new_root - > left = old_root;
-            new_root - > right = new_roots_right_child;
-            old_root - > left = old_roots_left_child;
-            old_root - > right = new_roots_left_child;
-
-            new_root - > parent = parent;
-            old_root - > parent = new_root;
-
-            if (new_roots_left_child) new_roots_left_child - > parent = old_root;
-            if (new_roots_right_child) new_roots_right_child - > parent = new_root;
-            if (old_roots_left_child) old_roots_left_child - > parent = old_root;
-
-            assert(is_valid(new_root));
-            return new_root;
-        }
-
-        public:
-            Tree(): root(0) {}
-
-        ~Tree() {
-            dispose(root);
-        }
-
-        Tree(const Tree & other) {
-            if (other.is_empty()) {
-                root = 0;
-            } else {
-                root = new Node(other.root - > value);
-
-                try {
-                    Node * now = root, * other_now = other.root;
-
-                    while (other_now) {
-                        if (other_now - > left && !now - > left) {
-                            now - > left = new Node(other_now - > left - > value);
-                            now - > left - > parent = now;
-                            now = now - > left;
-                            other_now = other_now - > left;
-                        } else if (other_now - > right && !now - > right) {
-                            now - > right = new Node(other_now - > right - > value);
-                            now - > right - > parent = now;
-                            now = now - > right;
-                            other_now = other_now - > right;
-                        } else {
-                            now = now - > parent;
-                            other_now = other_now - > parent;
-                        }
-                        is_valid(root);
-                    }
-                } catch (...) {
-                    this - > ~Tree();
-                    throw;
-                }
-            }
-        }
-
-        void swap(Tree & other) {
-            std::swap(root, other.root);
-        }
-
-        Tree & operator = (const Tree & other) {
-            Tree temp(other);
-            swap(temp);
-            return *this;
-        }
-
-        bool is_empty() const {
-            return !root;
-        }
-
-        void dump(ostream & out) {
-            dump_node(out, root);
-        }
-
-        bool contains(const T & t) const {
-            return static_cast < bool > (search(root, t));
-        }
-
-        bool insert(const T & value) {
-            Node * parent = 0, * now = root;
-
-            bool is_left_child = false;
-
-            while (now) {
-                parent = now;
-
-                if (value < now - > value) {
-                    is_left_child = true;
-                    now = now - > left;
-                } else if (value > now - > value) {
-                    is_left_child = false;
-                    now = now - > right;
-                } else {
-                    return false; // Node Exists already
-                }
-            }
-
-            Node * new_node = new Node(value);
-            new_node - > parent = parent;
-
-            if (parent == 0) root = new_node;
-            else if (is_left_child) parent - > left = new_node;
-            else parent - > right = new_node;
-
-            assert(is_valid(root));
-            return true;
-        }
-
-        void rotateLeft() {
-            root = rotate_left(root);
-        }
-
-        void rotateRight() {
-            root = rotate_right(root);
-        }
-
+        explicit Node(const T&val);;
     };
 
-template < class T >
-    Tree < T > ::Node::Node(const T & val):
-    parent(nullptr), left(nullptr), right(nullptr), value(val) {}
+    Node *root;
+
+    static bool is_left_child(const Node *node) {
+        if(node->parent == 0) return false;
+        else return node->parent->left == node;
+    }
+
+    static bool is_right_child(const Node *node) {
+        if(node->parent == 0) return false;
+        else return node->parent->right == node;
+    }
+
+    Node** get_parent_ptr(Node *node) {
+        if(node->parent == 0) return &root;
+        else if(is_left_child(node)) return &node->parent->left;
+        else return &node->parent->right;
+    }
+
+    static string format_label(const Node *node) {
+        ostringstream out;
+        if(node) {
+            out << node->value;
+            return out.str();
+        }
+        else return "";
+    }
+
+    static unsigned int get_height(const Node *node)
+    {
+        if(!node) return 0;
+
+        unsigned int left_height = 0, right_height = 0;
+
+        if(node->left) left_height = get_height(node->left);
+        if(node->right) right_height = get_height(node->right);
+
+        return max(left_height, right_height) + 1;
+    }
+
+    static unsigned long get_width(const Node *node) {
+        if(!node) return 0;
+
+        unsigned long right_width = 0;
+        unsigned long left_width = 0;
+
+        if(node->left) left_width = get_width(node->left);
+        if(node->right) right_width = get_width(node->right);
+
+        return left_width + format_label(node).length() + right_width;
+    }
+
+    static void dump_spaces(ostream &out, unsigned long count) {
+        for(unsigned i = 0; i < count; ++i) out.put(' ');
+    }
+
+    static void dump_line(ostream &out, const Node *node, unsigned line) {
+        if(!node) return;
+
+        if(line == 1) {
+            dump_spaces(out, get_width(node->left));
+            out << format_label(node);
+            dump_spaces(out, get_width(node->right));
+        }
+        else {
+            dump_line(out, node->left, line-1);
+            dump_spaces(out, format_label(node).length());
+            dump_line(out, node->right, line-1);
+        }
+    }
+
+    static void dump_node(ostream &out, const Node *node) {
+        for(unsigned line = 1, height = get_height(node); line <= height; ++line)
+        {
+            dump_line(out, node, line);
+            out.put('\n');
+        }
+        out.flush();
+    }
+
+    bool is_valid(Node *node) {
+        if(node == 0) return true;
+        if(*get_parent_ptr(node) != node) return false;
+        if(!is_valid(node->left)) return false;
+        if(!is_valid(node->right)) return false;
+
+        return true;
+    }
+
+    static void dispose(Node *node) {
+        if(node) {
+            dispose(node->left);
+            dispose(node->right);
+            delete node;
+        }
+    }
+
+    template <class NodeT>
+    static NodeT* search(NodeT* root, const T &value) {
+        NodeT *now = root;
+        while(now)
+        {
+            if(value < now->value) now = now->left;
+            else if(value > now->value) now = now->right;
+            else return now;
+        }
+        return nullptr;
+    }
+
+    Node* rotate_left(Node *old_root) {
+        Node
+                **root_ptr = get_parent_ptr(old_root),
+                *parent = old_root->parent,
+                *new_root = old_root->right,
+                *old_roots_left_child = old_root->left,
+                *new_roots_left_child = new_root->left,
+                *new_roots_right_child = new_root->right;
+
+        *root_ptr = new_root;
+        new_root->left = old_root;
+        new_root->right =  new_roots_right_child;
+        old_root->left = old_roots_left_child;
+        old_root->right = new_roots_left_child;
+
+        new_root->parent = parent;
+        old_root->parent = new_root;
+
+        if(new_roots_left_child) new_roots_left_child->parent = old_root;
+        if(new_roots_right_child) new_roots_right_child->parent = new_root;
+        if(old_roots_left_child) old_roots_left_child->parent = old_root;
+
+        assert(is_valid(new_root));
+        return new_root;
+    }
+
+    Node* rotate_right(Node *old_root) {
+        //todo: Algorithmus spiegeln!
+        return 0;
+        Node
+                **root_ptr = get_parent_ptr(old_root),
+                *parent = old_root->parent,
+                *new_root = old_root->left,
+                *old_roots_left_child = old_root->left,
+                *new_roots_left_child = new_root->left,
+                *new_roots_right_child = new_root->right;
+
+        *root_ptr = new_root;
+        new_root->left = old_root;
+        new_root->right =  new_roots_right_child;
+        old_root->left = old_roots_left_child;
+        old_root->right = new_roots_left_child;
+
+        new_root->parent = parent;
+        old_root->parent = new_root;
+
+        if(new_roots_left_child) new_roots_left_child->parent = old_root;
+        if(new_roots_right_child) new_roots_right_child->parent = new_root;
+        if(old_roots_left_child) old_roots_left_child->parent = old_root;
+
+        assert(is_valid(new_root));
+        return new_root;
+    }
+
+public:
+    Tree():root(0){}
+
+    ~Tree() {
+        dispose(root);
+    }
+
+    Tree(const Tree &other) {
+        if(other.is_empty()) {
+            root = 0;
+        }
+        else {
+            root = new Node(other.root->value);
+
+            try {
+                Node *now = root,
+                     *other_now = other.root;
+
+                while(other_now) {
+                    if(other_now->left && !now->left)  {
+                        now->left = new Node(other_now->left->value);
+                        now->left->parent = now;
+                        now = now->left;
+                        other_now = other_now->left;
+                    }
+                    else if(other_now->right && !now->right) {
+                        now->right = new Node(other_now->right->value);
+                        now->right->parent = now;
+                        now = now->right;
+                        other_now = other_now->right;
+                    }
+                    else {
+                        now = now->parent;
+                        other_now = other_now->parent;
+                    }
+                    is_valid(root);
+                }
+            }
+            catch (...) {
+                this->~Tree();
+                throw;
+            }
+        }
+    }
+
+    void swap(Tree &other) {
+        std::swap(root, other.root);
+    }
+
+    Tree&operator=(const Tree &other) {
+        Tree temp(other);
+        swap(temp);
+        return *this;
+    }
+
+    bool is_empty() const {
+        return !root;
+    }
+
+    void dump(ostream &out) {
+        dump_node(out, root);
+    }
+
+    bool contains(const T &t) const{
+        return static_cast<bool>(search(root, t));
+    }
+
+    bool insert(const T &value) {
+        Node *parent = 0,
+             *now = root;
+
+        bool is_left_child = false;
+
+        while(now) {
+            parent = now;
+
+            if(value < now->value) {
+                is_left_child = true;
+                now = now->left;
+            }
+            else if(value > now->value) {
+                is_left_child = false;
+                now = now->right;
+            }
+            else {
+                return false; // Node Exists already
+            }
+        }
+
+        Node *new_node = new Node(value);
+        new_node->parent = parent;
+
+        if(parent == 0) root = new_node;
+        else if(is_left_child) parent->left = new_node;
+        else parent->right = new_node;
+
+        assert(is_valid(root));
+        return true;
+    }
+
+    void rotateLeft() {
+        root = rotate_left(root);
+    }
+
+    void rotateRight() {
+        root = rotate_right(root);
+    }
+
+};
+
+template<class T>
+Tree<T>::Node::Node(const T &val):
+        parent(nullptr), left(nullptr), right(nullptr), value(val) {}
+
 
 int main() {
 
-    Tree < int > * tree = new Tree < int > ();
+    Tree<int> *tree = new Tree<int>();
 
-    tree - > insert(5);
-    tree - > insert(7);
-    tree - > insert(4);
-    tree - > insert(6);
-    tree - > insert(9);
-    tree - > insert(10);
-    tree - > insert(12);
+    tree->insert(5);
+    tree->insert(7);
+    tree->insert(4);
+    tree->insert(6);
+    tree->insert(9);
+    tree->insert(10);
+    tree->insert(12);
 
     cout << endl << "===BINARY TREE===" << endl;
 
     ostream stream(nullptr);
     stream.rdbuf(std::cout.rdbuf());
-    tree - > dump(stream);
+    tree->dump(stream);
 
     cout << endl << "===TESTING AREA===" << endl;
 
-    cout << "contains(19) : " << tree - > contains(19) << endl;
-    cout << "contains(5) : " << tree - > contains(5) << endl;
+    cout << "contains(19) : " << tree->contains(19) << endl;
+    cout << "contains(5) : " << tree->contains(5) << endl;
+
 
     cout << endl << "===ROTATED LEFT===" << endl;
-    tree - > rotateLeft();
+    tree->rotateLeft();
 
     stream.clear();
     stream.rdbuf(std::cout.rdbuf());
-    tree - > dump(stream);
+    tree->dump(stream);
+
 
     cout << endl << "===ROTATED RIGHT===" << endl;
-    tree - > rotateRight();
+    tree->rotateRight();
 
     stream.clear();
     stream.rdbuf(std::cout.rdbuf());
-    tree - > dump(stream);
+    tree->dump(stream);
 
     return 0;
 }
