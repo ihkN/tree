@@ -20,17 +20,17 @@ private:
     Node *root;
 
     static bool is_left_child(const Node *node) {
-        if(node->parent == 0) return false;
+        if(node->parent == nullptr) return false;
         else return node->parent->left == node;
     }
 
     static bool is_right_child(const Node *node) {
-        if(node->parent == 0) return false;
+        if(node->parent == nullptr) return false;
         else return node->parent->right == node;
     }
 
     Node** get_parent_ptr(Node *node) {
-        if(node->parent == 0) return &root;
+        if(node->parent == nullptr) return &root;
         else if(is_left_child(node)) return &node->parent->left;
         else return &node->parent->right;
     }
@@ -113,16 +113,12 @@ private:
         }
     }
 
-    template <class NodeT>
-    static NodeT* search(NodeT* root, const T &value) {
-        NodeT *now = root;
-        while(now)
-        {
-            if(value < now->value) now = now->left;
-            else if(value > now->value) now = now->right;
-            else return now;
-        }
-        return nullptr;
+    bool search(Node* node, const T &value) {
+        if(node == nullptr) return false;
+
+        if(value < node->value) return search(node->left, value);
+        else if(value > node->value) return search(node->right, value);
+        else return true;
     }
 
     Node* rotate_left(Node *old_root) {
@@ -151,36 +147,74 @@ private:
         return new_root;
     }
 
-    Node* rotate_right(Node *old_root) {
-        //todo: Algorithmus spiegeln!
-        return 0;
+    void insert_node(Node *parent, Node *root_node, const T &value)
+    {
+        if(root_node == nullptr) {
+            Node *new_node = new Node(value);
+            new_node->parent = nullptr;
+
+            if (parent == nullptr) {
+                root = new_node;
+                new_node->parent = parent;
+            } else if (parent->value > value) {
+                parent->left = new_node;
+            } else if (parent->value < value) {
+                parent->right = new_node;
+            }
+
+            //First Element not set
+            root_node = new_node;
+            root_node->parent = parent;
+
+            assert(is_valid(root_node));
+            return;
+        }
+
+        if(root_node->value > value) insert_node(root_node, root_node->left, value);
+        else insert_node(root_node, root_node->right, value);
+    }
+
+    Node* rotate_right(Node*A){
         Node
-                **root_ptr = get_parent_ptr(old_root),
-                *parent = old_root->parent,
-                *new_root = old_root->left,
-                *old_roots_left_child = old_root->left,
-                *new_roots_left_child = new_root->left,
-                *new_roots_right_child = new_root->right;
+                **root_ptr = get_parent_ptr(A),
+                *parent = A->parent,
+                *B = A->left,
+                *X = B->left,
+                *Y = B->right,
+                *Z = A->right;
 
-        *root_ptr = new_root;
-        new_root->left = old_root;
-        new_root->right =  new_roots_right_child;
-        old_root->left = old_roots_left_child;
-        old_root->right = new_roots_left_child;
+        *root_ptr = B;
+        B->left = X;
+        B->right = A;
+        A->left = Y;
+        A->right = Z;
 
-        new_root->parent = parent;
-        old_root->parent = new_root;
+        B->parent = parent;
+        A->parent = B;
+        if(Z)
+            Z->parent = A;
+        if(X)
+            X->parent = B;
+        if(Y)
+            Y->parent = A;
 
-        if(new_roots_left_child) new_roots_left_child->parent = old_root;
-        if(new_roots_right_child) new_roots_right_child->parent = new_root;
-        if(old_roots_left_child) old_roots_left_child->parent = old_root;
+        return B;
+    }
 
-        assert(is_valid(new_root));
-        return new_root;
+    Node* get_min(Node* node)
+    {
+        if(node->left == nullptr) return node;
+        else return get_min(node->left);
+    }
+
+    Node* get_max(Node* node)
+    {
+        if(node->right == nullptr) return node;
+        else return get_max(node->right);
     }
 
 public:
-    Tree():root(0){}
+    Tree():root(nullptr){}
 
     ~Tree() {
         dispose(root);
@@ -242,41 +276,12 @@ public:
         dump_node(out, root);
     }
 
-    bool contains(const T &t) const{
-        return static_cast<bool>(search(root, t));
+    bool contains(const T &t) {
+        return search(root, t);
     }
 
-    bool insert(const T &value) {
-        Node *parent = 0,
-             *now = root;
-
-        bool is_left_child = false;
-
-        while(now) {
-            parent = now;
-
-            if(value < now->value) {
-                is_left_child = true;
-                now = now->left;
-            }
-            else if(value > now->value) {
-                is_left_child = false;
-                now = now->right;
-            }
-            else {
-                return false; // Node Exists already
-            }
-        }
-
-        Node *new_node = new Node(value);
-        new_node->parent = parent;
-
-        if(parent == 0) root = new_node;
-        else if(is_left_child) parent->left = new_node;
-        else parent->right = new_node;
-
-        assert(is_valid(root));
-        return true;
+    void insert(const T &value) {
+        insert_node(nullptr, root, value);
     }
 
     void rotateLeft() {
@@ -287,6 +292,14 @@ public:
         root = rotate_right(root);
     }
 
+    Node* get_minimum() {
+        return get_min(root);
+    }
+
+    Node* get_maximum() {
+        return get_max(root);
+    }
+
 };
 
 template<class T>
@@ -295,11 +308,10 @@ Tree<T>::Node::Node(const T &val):
 
 
 int main() {
+    auto *tree = new Tree<int>();
 
-    Tree<int> *tree = new Tree<int>();
-
-    tree->insert(5);
     tree->insert(7);
+    tree->insert(5);
     tree->insert(4);
     tree->insert(6);
     tree->insert(9);
@@ -317,21 +329,22 @@ int main() {
     cout << "contains(19) : " << tree->contains(19) << endl;
     cout << "contains(5) : " << tree->contains(5) << endl;
 
+    cout << "get_min: " << tree->get_minimum()->value << endl;
+    cout << "get_max: " << tree->get_maximum()->value << endl;
 
-    cout << endl << "===ROTATED LEFT===" << endl;
+    cout << endl << "===LEFT ROTATED===" << endl;
     tree->rotateLeft();
 
     stream.clear();
     stream.rdbuf(std::cout.rdbuf());
     tree->dump(stream);
 
-
-    cout << endl << "===ROTATED RIGHT===" << endl;
+    cout << endl << "===RIGHT ROTATED===" << endl;
     tree->rotateRight();
 
     stream.clear();
     stream.rdbuf(std::cout.rdbuf());
     tree->dump(stream);
 
-    return 0;
+    return 1;
 }
