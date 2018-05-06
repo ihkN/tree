@@ -1,8 +1,10 @@
 #include <iostream>
-#include <cmath>
-#include <sstream>
 #include <cassert>
-#include <algorithm>
+
+#include <boost/algorithm/string.hpp>
+
+#define RED 0
+#define BLACK 1
 
 using namespace std;
 
@@ -12,6 +14,7 @@ private:
 
     struct Node {
         T value;
+        bool color{}; // 0 = RED ; 1 = BLACK
         Node *left, *right, *parent;
 
         explicit Node(const T&val);;
@@ -36,10 +39,21 @@ private:
     }
 
     static string format_label(const Node *node) {
-        ostringstream out;
+
         if(node) {
-            out << node->value;
-            return out.str();
+
+            string reset_bg = "\033[0m";
+            string red = "\033[31m";
+            string black = "\033[37m"; //WHITE
+
+            string out = to_string(node->value);
+
+            if(node->color == RED) out.insert(0, red);
+            else if(node->color == BLACK) out.insert(0, black);
+
+            out.append(reset_bg);
+
+            return out;
         }
         else return "";
     }
@@ -65,45 +79,68 @@ private:
         if(node->left) left_width = get_width(node->left);
         if(node->right) right_width = get_width(node->right);
 
-        return left_width + format_label(node).length() + right_width;
+        //Remove Colors
+        string formatted = remove_formats(format_label(node));
+
+        return left_width + formatted.length() + right_width;
     }
 
-    static void dump_spaces(ostream &out, unsigned long count) {
-        for(unsigned i = 0; i < count; ++i) out.put(' ');
+    static void dump_spaces(string &out, unsigned long count) {
+        for(unsigned i = 0; i < count; ++i) out += ' ';
     }
 
-    static void dump_line(ostream &out, const Node *node, unsigned line) {
+    static string remove_formats (string in)
+    {
+        boost::erase_all(in, "\033[0m");
+        boost::erase_all(in, "\033[31m");
+        boost::erase_all(in, "\033[37m");
+
+        return in;
+    }
+
+    static void dump_line(string &out, const Node *node, unsigned line) {
         if(!node) return;
 
         if(line == 1) {
             dump_spaces(out, get_width(node->left));
-            out << format_label(node);
+            out += format_label(node);
             dump_spaces(out, get_width(node->right));
         }
         else {
             dump_line(out, node->left, line-1);
-            dump_spaces(out, format_label(node).length());
+
+            string formatted = remove_formats(format_label(node));
+
+            dump_spaces(out, formatted.length());
             dump_line(out, node->right, line-1);
         }
     }
 
-    static void dump_node(ostream &out, const Node *node) {
+    static void dump_node(string &out, const Node *node) {
         for(unsigned line = 1, height = get_height(node); line <= height; ++line)
         {
             dump_line(out, node, line);
-            out.put('\n');
+            out += '\n';
         }
-        out.flush();
+//        out.flush();
     }
 
     bool is_valid(Node *node) {
         if(node == 0) return true;
         if(*get_parent_ptr(node) != node) return false;
         if(!is_valid(node->left)) return false;
-        if(!is_valid(node->right)) return false;
+        return is_valid(node->right);
 
-        return true;
     }
+
+//    bool is_valid_rbt() {
+//        // #1 Root is Black
+//        if (!is_black_child(root)) return false;
+//
+//        // Uncle is Red
+//    }
+
+
 
     static void dispose(Node *node) {
         if(node) {
@@ -122,13 +159,30 @@ private:
     }
 
     Node* rotate_left(Node *old_root) {
+//        Node
+//                **root_ptr = get_parent_ptr(old_root),
+//                *parent = old_root->parent,
+//                *new_root = old_root->right,
+//                *old_roots_left_child = old_root->left,
+//                *new_roots_left_child = new_root->left,
+//                *new_roots_right_child = new_root->right;
+
         Node
                 **root_ptr = get_parent_ptr(old_root),
                 *parent = old_root->parent,
                 *new_root = old_root->right,
-                *old_roots_left_child = old_root->left,
-                *new_roots_left_child = new_root->left,
-                *new_roots_right_child = new_root->right;
+                *old_roots_left_child,
+                *new_roots_left_child,
+                *new_roots_right_child;
+
+        if(old_root->left != nullptr) old_roots_left_child = old_root->left;
+        else old_roots_left_child = nullptr;
+
+        if(new_root->left != nullptr) new_roots_left_child = new_root->left;
+        else new_roots_left_child = nullptr;
+
+        if(new_root->right != nullptr) new_roots_right_child = new_root->right;
+        else new_roots_right_child = nullptr;
 
         *root_ptr = new_root;
         new_root->left = old_root;
@@ -150,8 +204,11 @@ private:
     void insert_node(Node *parent, Node *root_node, const T &value)
     {
         if(root_node == nullptr) {
-            Node *new_node = new Node(value);
+            auto *new_node = new Node(value);
             new_node->parent = nullptr;
+
+            // RBT - #1 New Nodes are RED
+            new_node->color = RED;
 
             if (parent == nullptr) {
                 root = new_node;
@@ -167,6 +224,7 @@ private:
             root_node->parent = parent;
 
             assert(is_valid(root_node));
+
             return;
         }
 
@@ -213,6 +271,33 @@ private:
         else return get_max(node->right);
     }
 
+    // === RED BLACK TREE - METHODS ===
+
+    static bool is_black_child(const Node *node)
+    {
+        if(node == nullptr) return true; // NIL-Entry
+
+        return node->color == BLACK;
+    }
+
+    static bool is_red_child(const Node *node)
+    {
+        if(node == nullptr) return false; // NIL-Entry
+
+        return node->color == RED;
+    }
+
+    int get_item_count(Node* node) {
+        if(!node) return 0;
+        int left_height = 0, right_height = 0;
+
+        if(node->left) left_height = get_item_count(node->left);
+        if(node->right) right_height = get_item_count(node->right);
+
+        return left_height + right_height + 1;
+    }
+
+
 public:
     Tree():root(nullptr){}
 
@@ -258,6 +343,7 @@ public:
         }
     }
 
+
     void swap(Tree &other) {
         std::swap(root, other.root);
     }
@@ -272,8 +358,11 @@ public:
         return !root;
     }
 
-    void dump(ostream &out) {
+    string dump() {
+        string out;
         dump_node(out, root);
+
+        return out;
     }
 
     bool contains(const T &t) {
@@ -300,6 +389,14 @@ public:
         return get_max(root);
     }
 
+    int get_item_count()
+    {
+        return get_item_count(root);
+    }
+
+    // RED BLACK TREE - METHODS
+    //todo:
+
 };
 
 template<class T>
@@ -311,40 +408,26 @@ int main() {
     auto *tree = new Tree<int>();
 
     tree->insert(7);
-    tree->insert(5);
-    tree->insert(4);
     tree->insert(6);
+    tree->insert(5);
+    tree->insert(3);
+    tree->insert(1);
+    tree->insert(2);
+    tree->insert(4);
     tree->insert(9);
-    tree->insert(10);
     tree->insert(12);
+    tree->insert(10);
 
     cout << endl << "===BINARY TREE===" << endl;
-
-    ostream stream(nullptr);
-    stream.rdbuf(std::cout.rdbuf());
-    tree->dump(stream);
+    cout << tree->dump();
 
     cout << endl << "===TESTING AREA===" << endl;
 
-    cout << "contains(19) : " << tree->contains(19) << endl;
-    cout << "contains(5) : " << tree->contains(5) << endl;
-
+    cout << "contains(19): " << tree->contains(19) << endl;
+    cout << "contains(5): " << tree->contains(5) << endl;
+    cout << "item count: " << tree->get_item_count() << endl;
     cout << "get_min: " << tree->get_minimum()->value << endl;
     cout << "get_max: " << tree->get_maximum()->value << endl;
-
-    cout << endl << "===LEFT ROTATED===" << endl;
-    tree->rotateLeft();
-
-    stream.clear();
-    stream.rdbuf(std::cout.rdbuf());
-    tree->dump(stream);
-
-    cout << endl << "===RIGHT ROTATED===" << endl;
-    tree->rotateRight();
-
-    stream.clear();
-    stream.rdbuf(std::cout.rdbuf());
-    tree->dump(stream);
 
     return 1;
 }
