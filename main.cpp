@@ -14,7 +14,7 @@ private:
 
     struct Node {
         T value;
-        bool color{}; // 0 = RED ; 1 = BLACK
+        bool color; // 0 = RED ; 1 = BLACK
         Node *left, *right, *parent;
 
         explicit Node(const T&val);;
@@ -22,24 +22,7 @@ private:
 
     Node *root;
 
-    static bool is_left_child(const Node *node) {
-        if(node->parent == nullptr) return false;
-        else return node->parent->left == node;
-    }
-
-    static bool is_right_child(const Node *node) {
-        if(node->parent == nullptr) return false;
-        else return node->parent->right == node;
-    }
-
-    Node** get_parent_ptr(Node *node) {
-        if(node->parent == nullptr) return &root;
-        else if(is_left_child(node)) return &node->parent->left;
-        else return &node->parent->right;
-    }
-
     static string format_label(const Node *node) {
-
         if(node) {
 
             string reset_bg = "\033[0m";
@@ -57,9 +40,7 @@ private:
         }
         else return "";
     }
-
-    static unsigned int get_height(const Node *node)
-    {
+    static unsigned int get_height(const Node *node) {
         if(!node) return 0;
 
         unsigned int left_height = 0, right_height = 0;
@@ -69,7 +50,6 @@ private:
 
         return max(left_height, right_height) + 1;
     }
-
     static unsigned long get_width(const Node *node) {
         if(!node) return 0;
 
@@ -84,20 +64,16 @@ private:
 
         return left_width + formatted.length() + right_width;
     }
-
     static void dump_spaces(string &out, unsigned long count) {
         for(unsigned i = 0; i < count; ++i) out += ' ';
     }
-
-    static string remove_formats (string in)
-    {
+    static string remove_formats (string in) {
         boost::erase_all(in, "\033[0m");
         boost::erase_all(in, "\033[31m");
         boost::erase_all(in, "\033[37m");
 
         return in;
     }
-
     static void dump_line(string &out, const Node *node, unsigned line) {
         if(!node) return;
 
@@ -115,32 +91,13 @@ private:
             dump_line(out, node->right, line-1);
         }
     }
-
     static void dump_node(string &out, const Node *node) {
         for(unsigned line = 1, height = get_height(node); line <= height; ++line)
         {
             dump_line(out, node, line);
             out += '\n';
         }
-//        out.flush();
     }
-
-    bool is_valid(Node *node) {
-        if(node == 0) return true;
-        if(*get_parent_ptr(node) != node) return false;
-        if(!is_valid(node->left)) return false;
-        return is_valid(node->right);
-
-    }
-
-//    bool is_valid_rbt() {
-//        // #1 Root is Black
-//        if (!is_black_child(root)) return false;
-//
-//        // Uncle is Red
-//    }
-
-
 
     static void dispose(Node *node) {
         if(node) {
@@ -150,64 +107,50 @@ private:
         }
     }
 
-    bool search(Node* node, const T &value) {
-        if(node == nullptr) return false;
+    void rotate_left(Node *&root, Node *&pt) {
+        Node *pt_right = pt->right;
 
-        if(value < node->value) return search(node->left, value);
-        else if(value > node->value) return search(node->right, value);
-        else return true;
+        pt->right = pt_right->left;
+
+        if(pt->right != NULL) pt_right->parent = pt;
+
+        pt_right->parent = pt->parent;
+
+        if(pt->parent == NULL) root = pt_right;
+        else if(pt == pt->parent->left) pt->parent->left = pt_right;
+        else pt->parent->right = pt_right;
+
+        pt_right->left = pt;
+        pt->parent = pt_right;
     }
 
-    Node* rotate_left(Node *old_root) {
-//        Node
-//                **root_ptr = get_parent_ptr(old_root),
-//                *parent = old_root->parent,
-//                *new_root = old_root->right,
-//                *old_roots_left_child = old_root->left,
-//                *new_roots_left_child = new_root->left,
-//                *new_roots_right_child = new_root->right;
+    void rotate_right(Node *&root, Node *&pt) {
+        Node *pt_left = pt->left;
 
-        Node
-                **root_ptr = get_parent_ptr(old_root),
-                *parent = old_root->parent,
-                *new_root = old_root->right,
-                *old_roots_left_child,
-                *new_roots_left_child,
-                *new_roots_right_child;
+        pt->left = pt_left->right;
 
-        if(old_root->left != nullptr) old_roots_left_child = old_root->left;
-        else old_roots_left_child = nullptr;
+        if (pt->left != NULL) pt->left->parent = pt;
 
-        if(new_root->left != nullptr) new_roots_left_child = new_root->left;
-        else new_roots_left_child = nullptr;
+        pt_left->parent = pt->parent;
 
-        if(new_root->right != nullptr) new_roots_right_child = new_root->right;
-        else new_roots_right_child = nullptr;
+        if (pt->parent == NULL) root = pt_left;
+        else if (pt == pt->parent->left) pt->parent->left = pt_left;
+        else pt->parent->right = pt_left;
 
-        *root_ptr = new_root;
-        new_root->left = old_root;
-        new_root->right =  new_roots_right_child;
-        old_root->left = old_roots_left_child;
-        old_root->right = new_roots_left_child;
-
-        new_root->parent = parent;
-        old_root->parent = new_root;
-
-        if(new_roots_left_child) new_roots_left_child->parent = old_root;
-        if(new_roots_right_child) new_roots_right_child->parent = new_root;
-        if(old_roots_left_child) old_roots_left_child->parent = old_root;
-
-        assert(is_valid(new_root));
-        return new_root;
+        pt_left->right = pt;
+        pt->parent = pt_left;
     }
 
-    void insert_node(Node *parent, Node *root_node, const T &value)
-    {
+    Node* search(Node* node, const T &value) {
+        if(node == NULL) return NULL;
+        else if(node->value > value) return search(node->left, value);
+        else if(node->value < value) return search(node->right, value);
+        else return node;
+    }
+
+    void bst_insert(Node *parent, Node *root_node, const T &value) {
         if(root_node == nullptr) {
             auto *new_node = new Node(value);
-            new_node->parent = nullptr;
-
-            // RBT - #1 New Nodes are RED
             new_node->color = RED;
 
             if (parent == nullptr) {
@@ -223,129 +166,125 @@ private:
             root_node = new_node;
             root_node->parent = parent;
 
-            assert(is_valid(root_node));
+//            assert(is_valid(root_node));
 
             return;
         }
 
-        if(root_node->value > value) insert_node(root_node, root_node->left, value);
-        else insert_node(root_node, root_node->right, value);
+        if(root_node->value > value) bst_insert(root_node, root_node->left, value);
+        else bst_insert(root_node, root_node->right, value);
     }
 
-    Node* rotate_right(Node*A){
-        Node
-                **root_ptr = get_parent_ptr(A),
-                *parent = A->parent,
-                *B = A->left,
-                *X = B->left,
-                *Y = B->right,
-                *Z = A->right;
-
-        *root_ptr = B;
-        B->left = X;
-        B->right = A;
-        A->left = Y;
-        A->right = Z;
-
-        B->parent = parent;
-        A->parent = B;
-        if(Z)
-            Z->parent = A;
-        if(X)
-            X->parent = B;
-        if(Y)
-            Y->parent = A;
-
-        return B;
-    }
-
-    Node* get_min(Node* node)
+    void fix_violation(Node *&root, Node *&pt)
     {
-        if(node->left == nullptr) return node;
-        else return get_min(node->left);
+        Node *parent_pt = NULL;
+        Node *grand_parent_pt = NULL;
+
+        while ((pt != root) && (pt->color != BLACK) && (pt->parent->color == RED))
+        {
+            parent_pt = pt->parent;
+            grand_parent_pt = pt->parent->parent;
+
+            /* Case : A
+             *
+             * Parent of pt is left child of Grand-parent of pt
+             */
+            if (parent_pt == grand_parent_pt->left)
+            {
+
+                Node *uncle_pt = grand_parent_pt->right;
+
+                /* Case : 1
+                 *
+                 * The uncle of pt is also red
+                 * Only Recoloring required
+                 */
+                if (uncle_pt != NULL && uncle_pt->color == RED)
+                {
+                    grand_parent_pt->color = RED;
+                    parent_pt->color = BLACK;
+                    uncle_pt->color = BLACK;
+                    pt = grand_parent_pt;
+                }
+
+                else
+                {
+                    /* Case : 2
+                     *
+                     * pt is right child of its parent
+                     * Left-rotation required
+                     */
+                    if (pt == parent_pt->right)
+                    {
+                        rotate_left(root, parent_pt);
+                        pt = parent_pt;
+                        parent_pt = pt->parent;
+                    }
+
+                    /* Case : 3
+                     *
+                     * pt is left child of its parent
+                     * Right-rotation required
+                     */
+                    rotate_right(root, grand_parent_pt);
+                    swap(parent_pt->color, grand_parent_pt->color);
+                    pt = parent_pt;
+                }
+            }
+
+                /* Case : B
+                 *
+                 * Parent of pt is right child of Grand-parent of pt
+                 */
+            else
+            {
+                Node *uncle_pt = grand_parent_pt->left;
+
+                /*  Case : 1
+                 *
+                 * The uncle of pt is also red
+                 * Only Recoloring required
+                 */
+                if ((uncle_pt != NULL) && (uncle_pt->color == RED))
+                {
+                    grand_parent_pt->color = RED;
+                    parent_pt->color = BLACK;
+                    uncle_pt->color = BLACK;
+                    pt = grand_parent_pt;
+                }
+                else
+                {
+                    /* Case : 2
+                     *
+                     * pt is left child of its parent
+                     * Right-rotation required
+                     */
+                    if (pt == parent_pt->left)
+                    {
+                        rotate_right(root, parent_pt);
+                        pt = parent_pt;
+                        parent_pt = pt->parent;
+                    }
+
+                    /* Case : 3
+                     *
+                     * pt is right child of its parent
+                     * Left-rotation required
+                     */
+                    rotate_left(root, grand_parent_pt);
+                    swap(parent_pt->color, grand_parent_pt->color);
+                    pt = parent_pt;
+                }
+            }
+        }
+
+        root->color = BLACK;
     }
-
-    Node* get_max(Node* node)
-    {
-        if(node->right == nullptr) return node;
-        else return get_max(node->right);
-    }
-
-    // === RED BLACK TREE - METHODS ===
-
-    static bool is_black_child(const Node *node)
-    {
-        if(node == nullptr) return true; // NIL-Entry
-
-        return node->color == BLACK;
-    }
-
-    static bool is_red_child(const Node *node)
-    {
-        if(node == nullptr) return false; // NIL-Entry
-
-        return node->color == RED;
-    }
-
-    int get_item_count(Node* node) {
-        if(!node) return 0;
-        int left_height = 0, right_height = 0;
-
-        if(node->left) left_height = get_item_count(node->left);
-        if(node->right) right_height = get_item_count(node->right);
-
-        return left_height + right_height + 1;
-    }
-
-
 public:
-    Tree():root(nullptr){}
+    Tree():root(NULL){}
 
     ~Tree() {
         dispose(root);
-    }
-
-    Tree(const Tree &other) {
-        if(other.is_empty()) {
-            root = 0;
-        }
-        else {
-            root = new Node(other.root->value);
-
-            try {
-                Node *now = root,
-                     *other_now = other.root;
-
-                while(other_now) {
-                    if(other_now->left && !now->left)  {
-                        now->left = new Node(other_now->left->value);
-                        now->left->parent = now;
-                        now = now->left;
-                        other_now = other_now->left;
-                    }
-                    else if(other_now->right && !now->right) {
-                        now->right = new Node(other_now->right->value);
-                        now->right->parent = now;
-                        now = now->right;
-                        other_now = other_now->right;
-                    }
-                    else {
-                        now = now->parent;
-                        other_now = other_now->parent;
-                    }
-                    is_valid(root);
-                }
-            }
-            catch (...) {
-                this->~Tree();
-                throw;
-            }
-        }
-    }
-
-
-    void swap(Tree &other) {
-        std::swap(root, other.root);
     }
 
     Tree&operator=(const Tree &other) {
@@ -354,80 +293,42 @@ public:
         return *this;
     }
 
-    bool is_empty() const {
-        return !root;
-    }
-
-    string dump() {
+    string print() {
         string out;
         dump_node(out, root);
 
         return out;
     }
 
-    bool contains(const T &t) {
-        return search(root, t);
-    }
 
     void insert(const T &value) {
-        insert_node(nullptr, root, value);
+        bst_insert(NULL, root, value);
+        Node* node = search(root, value);
+        fix_violation(root, node);
+
     }
 
-    void rotateLeft() {
-        root = rotate_left(root);
-    }
-
-    void rotateRight() {
-        root = rotate_right(root);
-    }
-
-    Node* get_minimum() {
-        return get_min(root);
-    }
-
-    Node* get_maximum() {
-        return get_max(root);
-    }
-
-    int get_item_count()
-    {
-        return get_item_count(root);
-    }
-
-    // RED BLACK TREE - METHODS
-    //todo:
 
 };
 
 template<class T>
 Tree<T>::Node::Node(const T &val):
-        parent(nullptr), left(nullptr), right(nullptr), value(val) {}
+        parent(NULL), left(NULL), right(NULL), value(val) {}
 
 
 int main() {
     auto *tree = new Tree<int>();
 
-    tree->insert(7);
-    tree->insert(6);
-    tree->insert(5);
-    tree->insert(3);
     tree->insert(1);
     tree->insert(2);
+    tree->insert(3);
     tree->insert(4);
-    tree->insert(9);
-    tree->insert(12);
-    tree->insert(10);
+    tree->insert(5);
+    tree->insert(6);
+    tree->insert(7);
+    tree->insert(8);
 
-    cout << endl << "===BINARY TREE===" << endl;
-    cout << tree->dump();
-
-    cout << endl << "===TESTING AREA===" << endl;
-
-    cout << "contains(19): " << tree->contains(19) << endl;
-    cout << "contains(5): " << tree->contains(5) << endl;
-    cout << "item count: " << tree->get_item_count() << endl;
-    cout << "get_min: " << tree->get_minimum()->value << endl;
-    cout << "get_max: " << tree->get_maximum()->value << endl;
+    cout << tree->print();
 
     return 1;
 }
